@@ -15,6 +15,7 @@ type Configuration struct {
 	TLS         bool     `yaml:"tls"`
 	InsecureTLS bool     `yaml:"insecure_tls"`
 	HL          []string `yaml:"hl"`
+	User        string   `yaml:"user"`
 }
 
 // C is the exported configuration
