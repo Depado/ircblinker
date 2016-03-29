@@ -24,7 +24,9 @@ func Start(ib *irc.Connection) {
 	gbot := gobot.NewGobot()
 
 	r := raspi.NewRaspiAdaptor("raspi")
-	led := gpio.NewLedDriver(r, "led", "12")
+	hlLed := gpio.NewLedDriver(r, "hlled", "12")
+	afkLed := gpio.NewLedDriver(r, "afkled", "11")
+	serviceLed := gpio.NewLedDriver(r, "serviceled", "13")
 	button := gpio.NewButtonDriver(r, "afkbtn", "5")
 
 	work := func() {
@@ -33,21 +35,55 @@ func Start(ib *irc.Connection) {
 			AFK = !AFK
 			if AFK {
 				ib.Privmsg(conf.C.User, "AFK Button Pushed : AFK Mode Activated")
+				if err = afkLed.On(); err != nil {
+					log.Fatal(err)
+				}
 			} else {
 				ib.Privmsg(conf.C.User, "AFK Button Pushed : AFK Mode Deactivated")
+				if err = afkLed.Off(); err != nil {
+					log.Fatal(err)
+				}
 			}
 		})
 		gobot.Every(500*time.Millisecond, func() {
 			if Unread {
 				on = true
-				if err = led.Toggle(); err != nil {
+				if err = hlLed.Toggle(); err != nil {
 					log.Fatal(err)
 				}
 			} else {
 				if on {
-					if err = led.Off(); err != nil {
+					if err = hlLed.Off(); err != nil {
 						log.Fatal(err)
 					}
+				}
+			}
+		})
+		up, err := AllServicesUp()
+		if err != nil {
+			log.Println("Errored when querying status :", err)
+		}
+		if !up {
+			if err = serviceLed.On(); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			if err = serviceLed.Off(); err != nil {
+				log.Fatal(err)
+			}
+		}
+		gobot.Every(30*time.Minute, func() {
+			up, err := AllServicesUp()
+			if err != nil {
+				log.Println("Errored when querying status :", err)
+			}
+			if !up {
+				if err = serviceLed.On(); err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				if err = serviceLed.Off(); err != nil {
+					log.Fatal(err)
 				}
 			}
 		})
@@ -55,7 +91,7 @@ func Start(ib *irc.Connection) {
 
 	robot := gobot.NewRobot("blinkBot",
 		[]gobot.Connection{r},
-		[]gobot.Device{led, button},
+		[]gobot.Device{hlLed, afkLed, serviceLed, button},
 		work,
 	)
 

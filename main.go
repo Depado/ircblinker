@@ -44,7 +44,6 @@ func main() {
 		}
 		if utils.StringInSlice(e.Nick, conf.C.HL) {
 			hardware.Unread = false
-			hardware.AFK = false
 			return
 		}
 		if utils.Any(conf.C.HL, s) {
